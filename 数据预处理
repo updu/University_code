@@ -1,0 +1,88 @@
+#从文本文件中读取数据
+result = []
+with open('Apriori_data.txt', 'r') as f:
+    for line in f:
+        x = list(map(int,(line.strip('\n').split(','))))
+        result.append(x)
+#读取到的数据
+dataset = result
+Data_set = list(map(set,dataset)) #转换列表记录为字典
+minsupport = 0.4    #最小支持度
+
+#对数据进行预处理，得到商品种类的数量
+def data_process(dataSet):
+    label = []
+    for data in dataSet:
+        for item in data:
+            if not [item] in label:
+                label.append([item])
+    label.sort()
+
+    return list(map(frozenset,label))
+
+#计算每类商品出现的次数
+def calculate_support(Data_set,new_label):
+    val_set = {}
+    for x in Data_set:
+        for y in new_label:
+            if y.issubset(x):
+                if y not in val_set:
+                    val_set[y] = 1
+                else:
+                    val_set[y] += 1
+
+    return val_set
+
+#计算满足最小支持度的项集
+def filter_Data_set(val_set):
+
+    num_Data_set = float(len(Data_set))
+    reset = []
+    supportData = {}
+    for key in val_set:
+        support = val_set[key] / num_Data_set
+        if support >= minsupport:
+            reset.insert(0,key)
+        supportData[key] = support
+
+    return reset,supportData
+
+#生成项集
+def create_list(can_list,num):
+    retlist = []
+    num_can_list = len(can_list)
+    for i in range(num_can_list):
+        for j in range(i+1,num_can_list):
+            L1 = list(can_list[i])[:num - 2]
+            L2 = list(can_list[j])[:num - 2]
+            L1.sort()
+            L2.sort()
+            if L1 == L2:
+                retlist.append(can_list[i] | can_list[j])
+    return retlist
+
+#生成所有满足支持度的项集
+def generate_all_combo(dataset):
+
+    new_label = data_process(dataset) #将每一个元素转换为字典
+    valset = calculate_support(Data_set,new_label)
+    L1 ,supportData = filter_Data_set(valset)
+    L = [L1]
+    k = 2
+    while (len(L[k-2]) > 0):
+        retlist_new = create_list(L[k-2],k)
+        val_1 = calculate_support(Data_set,retlist_new)
+        Lk,supK = filter_Data_set(val_1)
+        supportData.update(supK)
+        L.append(Lk)
+        k += 1
+    return L,supportData
+
+list_12,supData = generate_all_combo(dataset)
+print('可选项集及支持度：')
+for k,v in supData.items():
+    print(tuple(k),':',v)
+print('频繁项集：')
+for x in list_12:
+    for j in x:
+        print(tuple(j))
